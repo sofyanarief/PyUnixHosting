@@ -106,7 +106,8 @@ with SimpleXMLRPCServer((IpAddress, 8000),
         def add_unix_user(self):
             try:
                 subprocess.check_call(
-                    'useradd -p $(openssl passwd -1 '+self.userPass+') -m -U -s /bin/bash '+self.userId,
+                    'useradd -p $(openssl passwd -1 ' + self.userPass + ') -m -U -s /bin/bash -g hosting-users '
+                    + self.userId + ' && quotatool -u ' + self.userId + ' -bq 450M -l 500M /home',
                     shell=True)
             except subprocess.CalledProcessError:
                 return 'err'
@@ -116,7 +117,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
         def del_unix_user(self):
             try:
                 subprocess.check_call(
-                    'deluser '+self.userId+' && rm -Rf /home/'+self.userId,
+                    'deluser ' + self.userId + ' && rm -Rf /home/' + self.userId,
                     shell=True)
             except subprocess.CalledProcessError:
                 return 'err'
@@ -188,7 +189,6 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             else:
                 return 'err'
 
-
         def add_mysql_user(self):
             conn = self.check_mysql_conn()
             if conn[0] == 'done':
@@ -196,7 +196,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 cursor = conn.cursor()
                 try:
                     cursor.execute(
-                        'CREATE USER \''+ self.userId +'\'@\'localhost\' IDENTIFIED BY \''+self.userPass+'\';'
+                        'CREATE USER \'' + self.userId + '\'@\'localhost\' IDENTIFIED BY \'' + self.userPass + '\';'
                     )
                 except mysql.connector.Error as err:
                     conn.close()
@@ -233,7 +233,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 cursor = conn.cursor()
                 try:
                     cursor.execute(
-                        'GRANT ALL PRIVILEGES ON '+ self.userId +' . * TO \''+ self.userId +'\'@\'localhost\';'
+                        'GRANT ALL PRIVILEGES ON ' + self.userId + ' . * TO \'' + self.userId + '\'@\'localhost\';'
                     )
                 except mysql.connector.Error as err:
                     conn.close()
@@ -259,7 +259,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 cursor = conn.cursor()
                 try:
                     cursor.execute(
-                        'REVOKE ALL PRIVILEGES ON '+ self.userId +' . * FROM \''+ self.userId +'\'@\'localhost\';'
+                        'REVOKE ALL PRIVILEGES ON ' + self.userId + ' . * FROM \'' + self.userId + '\'@\'localhost\';'
                     )
                 except mysql.connector.Error as err:
                     conn.close()
@@ -277,6 +277,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                         return 'done'
             else:
                 return 'err'
+
 
     server.register_instance(Server())
 
