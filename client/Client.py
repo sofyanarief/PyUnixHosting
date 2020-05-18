@@ -7,19 +7,20 @@ def main(argv):
     userid = ''
     userpass = ''
     serverip = ''
+    mode = ''
 
     try:
-        opts, args = getopt.getopt(argv, "hu:p:s:", ["userid=", "userpass=", "serverip"])
+        opts, args = getopt.getopt(argv, "hu:p:s:m:", ["userid=", "userpass=", "serverip", "mode"])
     except getopt.GetoptError:
-        print('addShl.py -u <inputfile> -p <outputfile>')
+        print('Client.py -u <inputfile> -p <outputfile> -s <serverip> -m <mode>')
         sys.exit(2)
     if len(opts) == 0:
-        print('addShl.py -u <inputfile> -p <outputfile>')
+        print('Client.py -u <inputfile> -p <outputfile> -s <serverip> -m <mode>')
         sys.exit(2)
     else:
         for opt, arg in opts:
             if opt == '-h':
-                print('addShl.py -u <inputfile> -p <outputfile>')
+                print('Client.py -u <inputfile> -p <outputfile> -s <serverip> -m <mode>')
                 sys.exit()
             elif opt in ("-u", "--userid"):
                 userid = arg
@@ -27,15 +28,28 @@ def main(argv):
                 userpass = arg
             elif opt in ("-s", "--serverip"):
                 serverip = arg
+            elif opt in ("-m", "--mode"):
+                mode = arg
+
+        if not mode:
+            print('You must specify mode with -m option')
+            sys.exit(2)
+
+        if not serverip:
+            print('You must specify server\'s ip with -s option')
+            sys.exit(2)
 
         if not userpass:
             userpass = userid
 
-        if not serverip:
-            serverip = 'localhost'
-
-        s = xmlrpc.client.ServerProxy('http://'+serverip+':8000')
-        print(s.do_register(userid, userpass))
+        s = xmlrpc.client.ServerProxy('http://' + serverip + ':8000')
+        if mode is 'reg':
+            print(s.do_register(userid, userpass))
+        elif mode is 'unreg':
+            print(s.do_unregister(userid, userpass))
+        else:
+            print('You must enter valid mode [reg|unreg] in -m option')
+            sys.exit(2)
 
 
 if __name__ == "__main__":
