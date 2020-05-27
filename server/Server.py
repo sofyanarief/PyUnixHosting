@@ -46,14 +46,14 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 if self.add_mysql_database() == 'done':
                     if self.add_mysql_user() == 'done':
                         if self.add_mysql_privileges() == 'done':
-                            ret = 'done'
+                            ret = 'done_register'
                         else:
-                            # flag = 'err'
-                            # while flag == 'err':
-                            #     flag = self.del_mysql_user()
-                            # flag = 'err'
-                            # while flag == 'err':
-                            #     flag = self.del_mysql_database()
+                            flag = 'err'
+                            while flag == 'err':
+                                flag = self.del_mysql_user()
+                            flag = 'err'
+                            while flag == 'err':
+                                flag = self.del_mysql_database()
                             flag = 'err'
                             while flag == 'err':
                                 flag = self.del_unix_user()
@@ -82,22 +82,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             if self.del_unix_user() == 'done':
                 if self.del_mysql_database() == 'done':
                     if self.del_mysql_user() == 'done':
-                        ret = 'done'
-                # if self.del_mysql_privileges() == 'done':
-                #     if self.del_mysql_user() == 'done':
-                #         if self.del_mysql_database() == 'done':
-                #             ret = 'done'
-                #         else:
-                #             flag = 'err'
-                #             while flag == 'err':
-                #                 self.add_mysql_user()
-                #             flag = 'err'
-                #             while flag == 'err':
-                #                 self.add_mysql_privileges()
-                #             flag = 'err'
-                #             while flag == 'err':
-                #                 self.add_unix_user()
-                #             ret = 'err_del_mysql_database'
+                        ret = 'done_unregister'
                     else:
                         flag = 'err'
                         while flag == 'err':
@@ -276,7 +261,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                     if len(cursor.fetchall()) == 0:
                         logging.info('User Not Exist')
                         try:
-                            logging.warning('Adding User')
+                            logging.info('Adding User')
                             cursor.execute(
                                 'CREATE USER \'' + self.userId + '\'@\'localhost\' IDENTIFIED BY \'' + self.userPass + '\';'
                             )
@@ -294,7 +279,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                     else:
                         logging.info('User Already Exist')
                         try:
-                            logging.warning('Updating User Password')
+                            logging.info('Updating User Password')
                             cursor.execute(
                                 'UPDATE mysql.user SET password=password(\'' + self.userPass + '\') WHERE user=\'' + self.userId + '\' AND host=\'localhost\';'
                             )
