@@ -45,7 +45,7 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             if self.add_unix_user() == 'done':
                 if self.add_mysql_database() == 'done':
                     ret = 'done'
-                #     if self.add_mysql_user() == 'done':
+                    # if self.add_mysql_user() == 'done':
                 #         if self.add_mysql_privileges() == 'done':
                 #             ret = 'done'
                 #         else:
@@ -142,63 +142,74 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 return 'done'
 
         def check_mysql_conn(self):
-            conn = mysql.connector.connect()
             try:
                 logging.info('Connecting To Database')
                 conn = mysql.connector.connect(
                     user=self.mysqlUser,
                     passwd=self.mysqlPass,
-                    host=self.mysqlHost,
-                    # database='mysql'
+                    host=self.mysqlHost
                 )
             except mysql.connector.Error as err:
                 logging.error('Error Connecting To Database')
-                conn.close()
-                return ['err', conn]
+                return None
             else:
                 logging.warning('Done Connecting To Database')
-                return ['done', conn]
+                return conn
 
         def add_mysql_database(self):
             conn = self.check_mysql_conn()
-            if conn[0] == 'done':
-                conn = conn[1]
+            if conn is not None:
                 cursor = conn.cursor()
                 try:
                     logging.info('Checking If Database Exist')
                     cursor.execute(
-                        'USE DATABASE ' + self.userId + ';'
+                        'SHOW DATABASES;'
                     )
                 except mysql.connector.Error as err:
-                    logging.warning('Database Not Exist')
-                    try:
-                        logging.info('Adding Database')
-                        cursor.execute(
-                            'CREATE DATABASE ' + self.userId + ';'
-                        )
-                    except mysql.connector.Error as err:
-                        logging.error('Error Adding Database')
-                        cursor.close()
-                        conn.close()
-                        return 'err'
-                    else:
-                        logging.warning('Done Adding Database')
-                        conn.commit()
+                    logging.error('Error Checking If Database Exist')
+                    return 'err'
+                else:
+                    rec = cursor.fetchall()
+                    exist = False
+                    for a in rec:
+                        if self.userId in a:
+                            exist = True
+                            break
+                    if exist:
+                        logging.warning('Done Database Exist')
                         cursor.close()
                         conn.close()
                         return 'done'
-                else:
-                    logging.warning('Done Database Exist')
-                    cursor.close()
-                    conn.close()
-                    return 'done'
+                    else:
+                        logging.warning('Database Not Exist')
+                        try:
+                            logging.info('Adding Database')
+                            cursor.execute(
+                                'CREATE DATABASE ' + self.userId + ';'
+                            )
+                        except mysql.connector.Error as err:
+                            logging.error('Error Adding Database')
+                            cursor.close()
+                            conn.close()
+                            return 'err'
+                        else:
+                            if cursor.rowcount != 0:
+                                logging.warning('Done Adding Database')
+                                conn.commit()
+                                cursor.close()
+                                conn.close()
+                                return 'done'
+                            else:
+                                logging.error('Error Adding Database')
+                                cursor.close()
+                                conn.close()
+                                return 'err'
             else:
                 return 'err'
 
         def del_mysql_database(self):
             conn = self.check_mysql_conn()
-            if conn[0] == 'done':
-                conn = conn[1]
+            if conn is not None:
                 cursor = conn.cursor()
                 try:
                     logging.info('Checking If Database Exist')
@@ -230,25 +241,65 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                         return 'done'
             else:
                 return 'err'
-        #
-        # def add_mysql_user(self):
-        #     conn = self.check_mysql_conn()
-        #     if conn[0] == 'done':
-        #         conn = conn[1]
-        #         cursor = conn.cursor()
-        #         try:
-        #             cursor.execute(
-        #                 'CREATE USER \'' + self.userId + '\'@\'localhost\' IDENTIFIED BY \'' + self.userPass + '\';'
-        #             )
-        #         except mysql.connector.Error as err:
-        #             conn.close()
-        #             return 'err'
-        #         else:
-        #             conn.close()
-        #             return 'done'
-        #     else:
-        #         conn.close()
-        #         return 'err'
+
+        def add_mysql_user(self):
+            conn = self.check_mysql_conn()
+            if conn is not None:
+                cursor = conn.cursor()
+                try:
+                    logging.info('Checking If User Exist')
+                    cursor.execute(
+                        'SELECT user FROM mysql.user WHERE user=\'' + self.userId + '\';'
+                    )
+                except mysql.connector.Error as err:
+                    logging.error('Error Checking If User Exist')
+                    return 'err'
+                else:
+                    logging.warning('Done Checking If User Exist')
+                    if len(cursor.fetchall()) == 0:
+                        logging.info('User Not Exist')
+                        try:
+                            logging.warning('Adding User')
+                            cursor.execute(
+                                'CREATE USER \'' + self.userId + '\'@\'localhost\' IDENTIFIED BY \'' + self.userPass + '\';'
+                            )
+                        except mysql.connector.Error as err:
+                            logging.error('Error Adding User')
+                            cursor.close()
+                            conn.close()
+                            return 'err'
+                        else:
+                            logging.warning('Done Adding User')
+                            conn.commit()
+                            cursor.close()
+                            conn.close()
+                            return 'done'
+                    else:
+                        logging.info('User Already Exist')
+                        try:
+                            logging.warning('Updating User Password')
+                            cursor.execute(
+                                'UPDATE mysql.user SET password=password(\'' + self.userPass + '\') WHERE user=\'' + self.userId + '\' AND host=\'localhost\';'
+                            )
+                        except mysql.connector.Error as err:
+                            logging.error('Error Updating User Password')
+                            cursor.close()
+                            conn.close()
+                            return 'err'
+                        else:
+                            if cursor.rowcount == 0:
+                                logging.warning('Not Updating User Password')
+                                cursor.close()
+                                conn.close()
+                                return 'done'
+                            else:
+                                logging.warning('Done Updating User Password')
+                                conn.commit()
+                                cursor.close()
+                                conn.close()
+                                return 'done'
+            else:
+                return 'err'
         #
         # def del_mysql_user(self):
         #     conn = self.check_mysql_conn()
