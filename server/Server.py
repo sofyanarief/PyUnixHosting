@@ -255,6 +255,8 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                     )
                 except mysql.connector.Error as err:
                     logging.error('Error Checking If User Exist')
+                    cursor.close()
+                    conn.close()
                     return 'err'
                 else:
                     logging.warning('Done Checking If User Exist')
