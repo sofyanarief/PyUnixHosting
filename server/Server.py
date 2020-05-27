@@ -45,24 +45,23 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             if self.add_unix_user() == 'done':
                 if self.add_mysql_database() == 'done':
                     if self.add_mysql_user() == 'done':
-                        ret = 'done'
-                #         if self.add_mysql_privileges() == 'done':
-                #             ret = 'done'
-                #         else:
-                #             flag = 'err'
-                #             while flag == 'err':
-                #                 flag = self.del_mysql_user()
-                #             flag = 'err'
-                #             while flag == 'err':
-                #                 flag = self.del_mysql_database()
-                #             flag = 'err'
-                #             while flag == 'err':
-                #                 flag = self.del_unix_user()
-                #             ret = 'err_add_mysql_privileges'
+                        if self.add_mysql_privileges() == 'done':
+                            ret = 'done'
+                        else:
+                            # flag = 'err'
+                            # while flag == 'err':
+                            #     flag = self.del_mysql_user()
+                            # flag = 'err'
+                            # while flag == 'err':
+                            #     flag = self.del_mysql_database()
+                            flag = 'err'
+                            while flag == 'err':
+                                flag = self.del_unix_user()
+                            ret = 'err_add_mysql_privileges'
                     else:
-                        flag = 'err'
-                        while flag == 'err':
-                            flag = self.del_mysql_database()
+                        # flag = 'err'
+                        # while flag == 'err':
+                        #     flag = self.del_mysql_database()
                         flag = 'err'
                         while flag == 'err':
                             flag = self.del_unix_user()
@@ -322,32 +321,41 @@ with SimpleXMLRPCServer((IpAddress, 8000),
         #             return 'done'
         #     else:
         #         return 'err'
-        #
-        # def add_mysql_privileges(self):
-        #     conn = self.check_mysql_conn()
-        #     if conn[0] == 'done':
-        #         conn = conn[1]
-        #         cursor = conn.cursor()
-        #         try:
-        #             cursor.execute(
-        #                 'GRANT ALL PRIVILEGES ON ' + self.userId + ' . * TO \'' + self.userId + '\'@\'localhost\';'
-        #             )
-        #         except mysql.connector.Error as err:
-        #             conn.close()
-        #             return 'err'
-        #         else:
-        #             try:
-        #                 cursor.execute(
-        #                     'FLUSH PRIVILEGES;'
-        #                 )
-        #             except mysql.connector.Error as err:
-        #                 conn.close()
-        #                 return 'err'
-        #             else:
-        #                 conn.close()
-        #                 return 'done'
-        #     else:
-        #         return 'err'
+
+        def add_mysql_privileges(self):
+            conn = self.check_mysql_conn()
+            if conn is not None:
+                cursor = conn.cursor()
+                try:
+                    logging.info('Granting User')
+                    cursor.execute(
+                        'GRANT ALL PRIVILEGES ON ' + self.userId + ' . * TO \'' + self.userId + '\'@\'localhost\';'
+                    )
+                except mysql.connector.Error as err:
+                    logging.error('Error Granting User')
+                    cursor.close()
+                    conn.close()
+                    return 'err'
+                else:
+                    logging.warning('Done Granting User')
+                    try:
+                        logging.info('Flushing Privileges')
+                        cursor.execute(
+                            'FLUSH PRIVILEGES;'
+                        )
+                    except mysql.connector.Error as err:
+                        logging.error('Error Flushing Privileges')
+                        cursor.close()
+                        conn.close()
+                        return 'err'
+                    else:
+                        logging.warning('Done Flushing Privileges')
+                        conn.commit()
+                        cursor.close()
+                        conn.close()
+                        return 'done'
+            else:
+                return 'err'
         #
         # def del_mysql_privileges(self):
         #     conn = self.check_mysql_conn()
