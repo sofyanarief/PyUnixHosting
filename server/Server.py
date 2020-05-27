@@ -81,7 +81,8 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             self.userPass = userpass
             if self.del_unix_user() == 'done':
                 if self.del_mysql_database() == 'done':
-                    ret = 'done'
+                    if self.del_mysql_user() == 'done':
+                        ret = 'done'
                 # if self.del_mysql_privileges() == 'done':
                 #     if self.del_mysql_user() == 'done':
                 #         if self.del_mysql_database() == 'done':
@@ -97,14 +98,14 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 #             while flag == 'err':
                 #                 self.add_unix_user()
                 #             ret = 'err_del_mysql_database'
-                #     else:
-                #         flag = 'err'
-                #         while flag == 'err':
-                #             self.add_mysql_privileges()
-                #         flag = 'err'
-                #         while flag == 'err':
-                #             self.add_unix_user()
-                #         ret = 'err_del_mysql_user'
+                    else:
+                        flag = 'err'
+                        while flag == 'err':
+                            self.add_mysql_database()
+                        flag = 'err'
+                        while flag == 'err':
+                            self.add_unix_user()
+                        ret = 'err_del_mysql_user'
                 else:
                     flag = 'err'
                     while flag == 'err':
@@ -316,24 +317,49 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                                 return 'done'
             else:
                 return 'err'
-        #
-        # def del_mysql_user(self):
-        #     conn = self.check_mysql_conn()
-        #     if conn[0] == 'done':
-        #         conn = conn[1]
-        #         cursor = conn.cursor()
-        #         try:
-        #             cursor.execute(
-        #                 'DROP USER \'' + self.userId + '\'@\'localhost\';'
-        #             )
-        #         except mysql.connector.Error as err:
-        #             conn.close()
-        #             return 'err'
-        #         else:
-        #             conn.close()
-        #             return 'done'
-        #     else:
-        #         return 'err'
+
+        def del_mysql_user(self):
+            conn = self.check_mysql_conn()
+            if conn is not None:
+                cursor = conn.cursor()
+                try:
+                    logging.info('Checking If User Exist')
+                    cursor.execute(
+                        'SELECT user FROM mysql.user WHERE user=\'' + self.userId + '\';'
+                    )
+                except mysql.connector.Error as err:
+                    logging.error('Error Checking If User Exist')
+                    cursor.close()
+                    conn.close()
+                    return 'err'
+                else:
+                    logging.warning('Done Checking If User Exist')
+                    if len(cursor.fetchall()) != 0:
+                        logging.info('User Already Exist')
+                        try:
+                            logging.info('Deleting User')
+                            cursor.execute(
+                                'DROP USER \'' + self.userId + '\'@\'localhost\';'
+                            )
+                        except mysql.connector.Error as err:
+                            logging.error('Error Deleting User')
+                            cursor.close()
+                            conn.close()
+                            return 'err'
+                        else:
+                            logging.warning('Done Deleting User')
+                            conn.commit()
+                            cursor.close()
+                            conn.close()
+                            return 'done'
+                    else:
+                        logging.info('User Not Exist')
+                        logging.warning('Done Deleting User')
+                        cursor.close()
+                        conn.close()
+                        return 'done'
+            else:
+                return 'err'
 
         def add_mysql_privileges(self):
             conn = self.check_mysql_conn()
