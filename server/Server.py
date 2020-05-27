@@ -44,8 +44,8 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             self.userPass = userpass
             if self.add_unix_user() == 'done':
                 if self.add_mysql_database() == 'done':
-                    ret = 'done'
-                    # if self.add_mysql_user() == 'done':
+                    if self.add_mysql_user() == 'done':
+                        ret = 'done'
                 #         if self.add_mysql_privileges() == 'done':
                 #             ret = 'done'
                 #         else:
@@ -59,14 +59,14 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                 #             while flag == 'err':
                 #                 flag = self.del_unix_user()
                 #             ret = 'err_add_mysql_privileges'
-                #     else:
-                #         flag = 'err'
-                #         while flag == 'err':
-                #             flag = self.del_mysql_database()
-                #         flag = 'err'
-                #         while flag == 'err':
-                #             flag = self.del_unix_user()
-                #         ret = 'err_add_mysql_user'
+                    else:
+                        flag = 'err'
+                        while flag == 'err':
+                            flag = self.del_mysql_database()
+                        flag = 'err'
+                        while flag == 'err':
+                            flag = self.del_unix_user()
+                        ret = 'err_add_mysql_user'
                 else:
                     flag = 'err'
                     while flag == 'err':
@@ -167,6 +167,8 @@ with SimpleXMLRPCServer((IpAddress, 8000),
                     )
                 except mysql.connector.Error as err:
                     logging.error('Error Checking If Database Exist')
+                    cursor.close()
+                    conn.close()
                     return 'err'
                 else:
                     rec = cursor.fetchall()
@@ -207,40 +209,40 @@ with SimpleXMLRPCServer((IpAddress, 8000),
             else:
                 return 'err'
 
-        def del_mysql_database(self):
-            conn = self.check_mysql_conn()
-            if conn is not None:
-                cursor = conn.cursor()
-                try:
-                    logging.info('Checking If Database Exist')
-                    cursor.execute(
-                        'USE DATABASE ' + self.userId + ';'
-                    )
-                except mysql.connector.Error as err:
-                    logging.warning('Database Not Exist')
-                    cursor.close()
-                    conn.close()
-                    return 'done'
-                else:
-                    logging.warning('Database Exist')
-                    try:
-                        logging.info('Deleting Database')
-                        cursor.execute(
-                            'DROP DATABASE ' + self.userId + ';'
-                        )
-                    except mysql.connector.Error as err:
-                        logging.error('Error Deleting Database')
-                        cursor.close()
-                        conn.close()
-                        return 'err'
-                    else:
-                        logging.warning('Done Deleting Database')
-                        conn.commit()
-                        cursor.close()
-                        conn.close()
-                        return 'done'
-            else:
-                return 'err'
+        # def del_mysql_database(self):
+        #     conn = self.check_mysql_conn()
+        #     if conn is not None:
+        #         cursor = conn.cursor()
+        #         try:
+        #             logging.info('Checking If Database Exist')
+        #             cursor.execute(
+        #                 'USE DATABASE ' + self.userId + ';'
+        #             )
+        #         except mysql.connector.Error as err:
+        #             logging.warning('Database Not Exist')
+        #             cursor.close()
+        #             conn.close()
+        #             return 'done'
+        #         else:
+        #             logging.warning('Database Exist')
+        #             try:
+        #                 logging.info('Deleting Database')
+        #                 cursor.execute(
+        #                     'DROP DATABASE ' + self.userId + ';'
+        #                 )
+        #             except mysql.connector.Error as err:
+        #                 logging.error('Error Deleting Database')
+        #                 cursor.close()
+        #                 conn.close()
+        #                 return 'err'
+        #             else:
+        #                 logging.warning('Done Deleting Database')
+        #                 conn.commit()
+        #                 cursor.close()
+        #                 conn.close()
+        #                 return 'done'
+        #     else:
+        #         return 'err'
 
         def add_mysql_user(self):
             conn = self.check_mysql_conn()
